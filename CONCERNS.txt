@@ -1,0 +1,7 @@
+- Abbr. word (WTC, WWF ..) ---- SOLVED
+- various form abbr : AVE, TRA
+- words separated into letters during text extraction from pdfs (e.g. article "Building_recycling_rates_through_the_informal_sector.pdf") ------ SOLVED by replacing text in "raw"
+
+- S@S - separation at source (abbr)
+
+- Từ ghép có dấu gạch nối nằm ở từ thứ 2
