@@ -29,6 +29,8 @@ class Runner:
         self._cache_dir = None
         self._cached = False
 
+        self._store = {}
+
         self._result = None
 
     def set_output_dir(self, output_dir: str):

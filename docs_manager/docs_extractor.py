@@ -25,6 +25,8 @@ class DocsExtractor:
                 if not os.path.isfile(doc_file_path):
                     doc_file_path = os.path.join(dir_path, doc['file'])
             doc['text'] = self._get_text(doc_file_path)
+
+        print(f'Got {len(docs)} docs')
         return docs
 
     def _get_text(self, file_path):
@@ -126,7 +128,9 @@ class DocsExtractor:
         text = re.sub(r'Μ', 'M', text)
         text = re.sub(r'Ε', 'E', text)
         text = re.sub(r'𝑎𝑛𝑑', 'and', text)
-        text = re.sub(r'[̣̄˙‗̌■˜̂¸†®̀™●�̉̆☆́«⇑ˇ¨̸´‐▍»ˆ◦˘‧⃝̅·˛☯​•¯©∞⁎‖]+', '', text)
+        with open('.\\.special_chars.txt', 'r', encoding='utf-8') as f:
+            special_chars = f.read()
+            text = re.sub(r'[' + special_chars + ']+', '', text)
         # Spaces
         text = re.sub(r'\s+', ' ', text)
         # Words/Phrases which contain hyphen or slash and separated by line break

@@ -102,45 +102,78 @@ class LdaRunner(TopicModelRunner):
         with open(os.path.join(self._output_dir, 'umap_metadata.json'), 'w', encoding='utf-8') as file:
             json.dump(metadata, file, indent=4)
 
-    def _output_topics(self, result, output_dir):
-        _, evaluation, option = result
-
-        topic_matrix = evaluation.topic_matrix
-
-        with open(os.path.join(output_dir, 'topics.csv'), 'w', newline='', encoding='utf-8') as file:
-            csv_writer = csv.writer(file)
-            csv_writer.writerow(['topic', 'coherence'])
-            for topic_id in range(option.num_topics):
-                csv_writer.writerow([topic_id, topic_matrix[topic_id]])
-
-    def _output_topic_terms(self, result, output_dir):
+    def _output_result(self, result, output_dir):
         id2word, _ = self._dtm_runner.get_dtm()
         _, evaluation, option = result
 
         topic_term_matrix = evaluation.topic_term_matrix
 
+        self._store['topic_top_term_matrix'] = [
+            [
+                (term_id, id2word[term_id], topic_terms[term_id])
+                for term_id in matutils.argsort(topic_terms, option.terms_per_topic, reverse=True)
+            ]
+            for topic_terms in topic_term_matrix
+        ]
+
+        super()._output_result(result, output_dir)
+
+    def _output_topics(self, result, output_dir):
+        id2word, _ = self._dtm_runner.get_dtm()
+        _, evaluation, option = result
+
+        topic_matrix = evaluation.topic_matrix
+        topic_top_term_matrix = self._store['topic_top_term_matrix']
+
+        with open(os.path.join(output_dir, 'topics.csv'), 'w', newline='', encoding='utf-8') as file:
+            csv_writer = csv.writer(file)
+            csv_writer.writerow([
+                'topic_id',
+                'topic_coherence',
+                'topic_keywords',
+            ])
+            for topic_id in range(option.num_topics):
+                csv_writer.writerow([
+                    topic_id,
+                    topic_matrix[topic_id],
+                    ', '.join([term_name for _, term_name, _ in topic_top_term_matrix[topic_id]]),
+                ])
+
+    def _output_topic_terms(self, result, output_dir):
+        id2word, _ = self._dtm_runner.get_dtm()
+        _, evaluation, option = result
+
+        topic_top_term_matrix = self._store['topic_top_term_matrix']
+
         with open(os.path.join(output_dir, 'topic_terms.csv'), 'w', newline='', encoding='utf-8') as file:
             csv_writer = csv.writer(file)
-            csv_writer.writerow(['topic', 'term', 'probability'])
+            csv_writer.writerow([
+                'topic_id',
+                'term_name',
+                'term_probability',
+            ])
             for topic_id in range(option.num_topics):
-                topic_terms = topic_term_matrix[topic_id]
-                for term_id in matutils.argsort(topic_terms, option.terms_per_topic, reverse=True):
-                    csv_writer.writerow([topic_id, id2word[term_id], topic_terms[term_id]])
+                for _, term_name, term_probability in topic_top_term_matrix[topic_id]:
+                    csv_writer.writerow([
+                        topic_id,
+                        term_name,
+                        term_probability,
+                    ])
 
     def _output_document_topics(self, result, output_dir):
         docs = self._dtm_runner.get_docs()
         id2word, _ = self._dtm_runner.get_dtm()
         _, evaluation, option = result
 
-        topic_term_matrix = evaluation.topic_term_matrix
+        topic_top_term_matrix = self._store['topic_top_term_matrix']
         document_topic_matrix = evaluation.document_topic_matrix
 
         with open(os.path.join(output_dir, 'document_topics.csv'), 'w', newline='', encoding='utf-8') as file:
             csv_writer = csv.writer(file)
             csv_writer.writerow([
-                'eid',
-                'title',
-                'file',
+                'doc_eid',
+                'doc_title',
+                'doc_file',
                 'topic_id',
                 'topic_probability',
                 'topic_keywords',
@@ -155,10 +188,32 @@ class LdaRunner(TopicModelRunner):
                         doc['file'],
                         topic_id,
                         document_topic_matrix[doc_id][topic_id],
-                        ', '.join([id2word[term_id] for term_id in
-                                   matutils.argsort(topic_term_matrix[topic_id], option.terms_per_topic,
-                                                    reverse=True)]),
+                        ', '.join([term_name for _, term_name, _ in topic_top_term_matrix[topic_id]]),
                     ])
+
+        # document_dominant_topics = np.argmax(document_topic_matrix, axis=1)
+        # with open(os.path.join(output_dir, 'document_dominant_topic.csv'), 'w', newline='', encoding='utf-8') as file:
+        #     csv_writer = csv.writer(file)
+        #     csv_writer.writerow([
+        #         'doc_eid',
+        #         'doc_title',
+        #         'doc_file',
+        #         'topic_id',
+        #         'topic_probability',
+        #         'topic_keywords',
+        #     ])
+        #
+        #     for doc_id in range(len(docs)):
+        #         doc = docs[doc_id]
+        #         topic_id = document_dominant_topics[doc_id]
+        #         csv_writer.writerow([
+        #             doc['eid'],
+        #             doc['title'],
+        #             doc['file'],
+        #             topic_id,
+        #             document_topic_matrix[doc_id][topic_id],
+        #             ', '.join([term_name for _, term_name, _ in topic_top_term_matrix[topic_id]]),
+        #         ])
 
     def _output_visualization(self, result, output_dir):
         id2word, corpus = self._dtm_runner.get_dtm()

@@ -104,7 +104,12 @@ class TopicModelRunner(Runner):
             print('Result %d / %d' % (i + 1, num_results))
             start_at = time.time()
 
-            self._output_result(result)
+            _, _, option = result
+
+            output_dir = os.path.join(self._output_dir, 'o_' + str(option))
+            os.makedirs(output_dir, exist_ok=True)
+
+            self._output_result(result, output_dir)
 
             duration = time.time() - start_at
             print(f'Result time: {duration:.0f} sec')
@@ -115,12 +120,7 @@ class TopicModelRunner(Runner):
     def _output_umap_results(self):
         return
 
-    def _output_result(self, result):
-        topic_model, evaluation, option = result
-
-        output_dir = os.path.join(self._output_dir, 'o_' + str(option))
-        os.makedirs(output_dir, exist_ok=True)
-
+    def _output_result(self, result, output_dir):
         self._output_topics(result, output_dir)
         self._output_topic_terms(result, output_dir)
         self._output_document_topics(result, output_dir)
