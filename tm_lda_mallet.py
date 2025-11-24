@@ -44,7 +44,7 @@ def main():
     # nums_topics = range(50, 82, 4)
     # nums_topics = range(82, 102, 4)
 
-    nums_topics = [10]
+    nums_topics = [22,42,60,82]
 
     alphas = [5]
 
@@ -62,7 +62,7 @@ def main():
 
                         'alpha': alpha,
                         'beta': beta,
-                        'random_seed': 100,
+                        'random_seed': 88,
 
                         'num_iterations': 1000,
                         'optimize_interval': 0,
@@ -86,3 +86,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    print('\a')

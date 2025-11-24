@@ -66,6 +66,8 @@ metrics = [
     'sokalmichener',
     'sokalsneath',
     'yule',
+
+    'hellinger',
 ]
 
 title = 'UMAP of LDA Document-Topic-Term Matrix'

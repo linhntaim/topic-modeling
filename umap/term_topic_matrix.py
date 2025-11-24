@@ -70,7 +70,7 @@ metrics = [
     'hellinger',
 ]
 
-title = 'UMAP of LDA Document-Topic Matrix'
+title = 'UMAP of LDA Topic-Term Matrix'
 
 app = Dash(
     __name__,
@@ -340,7 +340,8 @@ def update_graph(n_clicks, stored_data, stored_metadata, stored_umap):
     topic_top_terms = [[meta_terms[term_id] for term_id in matutils.argsort(topic_terms, terms_per_topic, reverse=True)]
                        for topic_terms in topic_term_matrix]
 
-    document_dominant_topics = np.argmax(document_topic_matrix, axis=1)
+    term_topic_matrix = np.array(topic_term_matrix).T.tolist()
+    term_dominant_topics = np.argmax(term_topic_matrix, axis=1)
 
     n_components_value, n_neighbors_value, min_dist_value, metric_value = stored_umap
     umap_model = umap.UMAP(
@@ -351,31 +352,31 @@ def update_graph(n_clicks, stored_data, stored_metadata, stored_umap):
         random_state=random_seed,
     )
 
-    embedding = umap_model.fit_transform(document_topic_matrix)
+    embedding = umap_model.fit_transform(term_topic_matrix)
     if n_components_value == 3:
         fig = px.scatter_3d(
             pandas.DataFrame({
                 'x': embedding[:, 0],
                 'y': embedding[:, 1],
                 'z': embedding[:, 2],
-                'document_dominant_topic': [f'Topic {topic_id}' for topic_id in document_dominant_topics],
-                'document_dominant_keywords': [', '.join(topic_top_terms[topic_id])
-                                               for topic_id in document_dominant_topics],
-                'document': [meta_docs[i] for i in range(num_docs)],
+                'term_dominant_topic': [f'Topic {topic_id}' for topic_id in term_dominant_topics],
+                'term_dominant_keywords': [', '.join(topic_top_terms[topic_id])
+                                           for topic_id in term_dominant_topics],
+                'term': meta_terms,
             }),
             x='x',
             y='y',
             z='z',
-            color='document_dominant_topic',
+            color='term_dominant_topic',
             color_discrete_sequence=discrete_colors,
             title=title,
             hover_data={
                 'x': False,
                 'y': False,
                 'z': False,
-                'document_dominant_topic': True,
-                'document_dominant_keywords': True,
-                'document': True,
+                'term_dominant_topic': True,
+                'term_dominant_keywords': True,
+                'term': True,
             },
             labels={
                 'x': 'UMAP Dimension 1',
@@ -393,29 +394,28 @@ def update_graph(n_clicks, stored_data, stored_metadata, stored_umap):
             hoverinfo='none',
         ).update_layout(
             hoverdistance=1,
-            spikedistance=1,
         )
     elif n_components_value == 2:
         fig = px.scatter(
             pandas.DataFrame({
                 'x': embedding[:, 0],
                 'y': embedding[:, 1],
-                'document_dominant_topic': [f'Topic {topic_id}' for topic_id in document_dominant_topics],
-                'document_dominant_keywords': [', '.join(topic_top_terms[topic_id])
-                                               for topic_id in document_dominant_topics],
-                'document': [meta_docs[i] for i in range(num_docs)],
+                'term_dominant_topic': [f'Topic {topic_id}' for topic_id in term_dominant_topics],
+                'term_dominant_keywords': [', '.join(topic_top_terms[topic_id])
+                                           for topic_id in term_dominant_topics],
+                'term': meta_terms,
             }),
             x='x',
             y='y',
-            color='document_dominant_topic',
+            color='term_dominant_topic',
             color_discrete_sequence=discrete_colors,
             title=title,
             hover_data={
                 'x': False,
                 'y': False,
-                'document_dominant_topic': True,
-                'document_dominant_keywords': True,
-                'document': True,
+                'term_dominant_topic': True,
+                'term_dominant_keywords': True,
+                'term': True,
             },
             labels={
                 'x': 'UMAP Dimension 1',
@@ -432,33 +432,32 @@ def update_graph(n_clicks, stored_data, stored_metadata, stored_umap):
             hoverinfo='none',
         ).update_layout(
             hoverdistance=1,
-            spikedistance=1,
         )
     elif n_components_value == 1:
         fig = px.scatter(
             pandas.DataFrame({
                 'x': embedding.flatten(),
                 'y': [0] * len(embedding),
-                'document_dominant_topic': [f'Topic {topic_id}' for topic_id in document_dominant_topics],
-                'document_dominant_keywords': [', '.join(topic_top_terms[topic_id])
-                                               for topic_id in document_dominant_topics],
-                'document': [meta_docs[i] for i in range(num_docs)],
+                'term_dominant_topic': [f'Topic {topic_id}' for topic_id in term_dominant_topics],
+                'term_dominant_keywords': [', '.join(topic_top_terms[topic_id])
+                                           for topic_id in term_dominant_topics],
+                'term': meta_terms,
             }),
             x='x',
             y='y',
-            color='document_dominant_topic',
+            color='term_dominant_topic',
             color_discrete_sequence=discrete_colors,
             title=title,
             hover_data={
                 'x': False,
                 'y': False,
-                'document_dominant_topic': True,
-                'document_dominant_keywords': True,
-                'document': True,
+                'term_dominant_topic': True,
+                'term_dominant_keywords': True,
+                'term': True,
             },
             labels={
                 'x': 'UMAP Dimension 1',
-                'y': 'Constant',
+                'y': 'UMAP Dimension 2',
                 'document_dominant_topic': 'Dominant Topic',
                 'document_dominant_keywords': 'Dominant Keywords',
                 'document': 'Document',
@@ -471,7 +470,6 @@ def update_graph(n_clicks, stored_data, stored_metadata, stored_umap):
             hoverinfo='none',
         ).update_layout(
             hoverdistance=1,
-            spikedistance=1,
         )
     else:
         fig = None
