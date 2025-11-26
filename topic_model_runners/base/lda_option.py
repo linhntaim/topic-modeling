@@ -7,4 +7,4 @@ class LdaOption(TopicModelOption):
 
         self._define('alpha', 'autp', 'al')
         self._define('beta', 'auto', 'be')
-        self._define('random_seed', 100, False)
+        self._define('random_seed', 100, 'rd')
