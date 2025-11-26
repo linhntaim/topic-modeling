@@ -4,11 +4,12 @@ import json
 
 import numpy as np
 import pandas
-import umap
 
 from dash import Dash, html, dcc, Output, Input, State
 from gensim import matutils
 from plotly import express as px
+
+from base.ab_fixed_umap import ABFixedUMAP
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--port', help='Set port', default='8050')
@@ -343,7 +344,7 @@ def update_graph(n_clicks, stored_data, stored_metadata, stored_umap):
     document_dominant_topics = np.argmax(document_topic_matrix, axis=1)
 
     n_components_value, n_neighbors_value, min_dist_value, metric_value = stored_umap
-    umap_model = umap.UMAP(
+    umap_model = ABFixedUMAP(
         n_components=n_components_value,
         n_neighbors=n_neighbors_value,
         min_dist=min_dist_value,

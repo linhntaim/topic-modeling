@@ -5,7 +5,6 @@ import json
 import hdbscan
 import numpy as np
 import pandas
-import umap
 
 from dash import Dash, html, dcc, Output, Input, State
 from gensim import matutils
@@ -13,6 +12,8 @@ from plotly import express as px, graph_objs as go
 from plotly.subplots import make_subplots
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
+
+from base.ab_fixed_umap import ABFixedUMAP
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--port', help='Set port', default='8050')
@@ -591,7 +592,7 @@ def update_umap_graph(n_clicks, stored_data, stored_metadata, stored_umap_params
         min_dist_value,
         metric_value,
     ) = stored_umap_params
-    umap_model = umap.UMAP(
+    umap_model = ABFixedUMAP(
         n_components=n_components_value,
         n_neighbors=n_neighbors_value,
         min_dist=min_dist_value,
