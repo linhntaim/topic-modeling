@@ -1,11 +1,12 @@
 import re
 from itertools import chain
 
+from docs_manager.docs_db import DocsDB
 from docs_manager.docs_extractor import DocsExtractor
 
 
 class SpecialCharsExtractor(DocsExtractor):
-    def from_db(self, docs_db, dir_path: str, raw_dir_path: str = None):
+    def from_db(self, docs_db: DocsDB, dir_path: str, raw_dir_path: str = None):
         docs = super().from_db(docs_db, dir_path, raw_dir_path)
 
         special_chars = sorted(

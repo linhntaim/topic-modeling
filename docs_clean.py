@@ -16,11 +16,15 @@ args = parser.parse_args()
 
 reset = args.reset
 
+
 def remove_files(dir_path: str):
     for filename in os.listdir(dir_path):
+        if filename == '.gitignore':
+            continue
         file_path = os.path.join(dir_path, filename)
         if os.path.isfile(file_path):
             os.remove(file_path)
+
 
 clean_dir = '.\\.cache\\clean'
 

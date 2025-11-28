@@ -1,0 +1,14 @@
+{
+  "ngram": [true],
+  "tfidf": [true],
+  "abbr_as_ngram": [false],
+  "num_topics": [80, 84, 88, 92, 96, 100],
+  "terms_per_topic": [15],
+  "alpha": ["auto"],
+  "beta": ["auto"],
+  "random_seed": [42],
+  "chunksize": [200],
+  "passes": [10],
+  "update_every": [1],
+  "iterations": [50]
+}

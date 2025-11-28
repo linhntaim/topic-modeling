@@ -29,6 +29,9 @@ class DocsDB:
     def get_processed(self):
         return self.__db[self.__db['PROCESSING'] == '1'].to_dict(orient='records')
 
+    def get_non_processed(self):
+        return self.__db[self.__db['PROCESSING'] == '0'].to_dict(orient='records')
+
     def get_non_deleted(self):
         return self.__db[self.__db['PROCESSING'] != 'delete'].to_dict(orient='records')
 

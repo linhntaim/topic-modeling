@@ -2,11 +2,12 @@ import csv
 import os
 import re
 
+from docs_manager.docs_db import DocsDB
 from docs_manager.docs_extractor import DocsExtractor
 
 
 class AbbreviationsExtractor(DocsExtractor):
-    def from_db(self, docs_db, dir_path, raw_dir_path: str = None):
+    def from_db(self, docs_db: DocsDB, dir_path, raw_dir_path: str = None):
         docs = super().from_db(docs_db, dir_path, raw_dir_path)
 
         for doc in docs:
@@ -31,24 +32,31 @@ class AbbreviationsExtractor(DocsExtractor):
                     abbr_main_name = abbr_name
                 else:
                     abbr_main_name = re.sub(r'[a-z]+', '', abbr_name)
-                abbr_expansion_tokens =[re.sub(r'[^a-z\'\-_]+', '', token.lower()) for token in text[:abbr_match.start() - 1].split()[-len(abbr_main_name):]]
+                abbr_expansion_tokens = [
+                    re.sub(r'[^a-z\'\-_]+', '', token.lower())
+                    for token in text[:abbr_match.start() - 1].split()[-len(abbr_main_name):]
+                ]
                 abbr_should_be_main_name = ''.join([token[:1] for token in abbr_expansion_tokens])
                 abbr_expansion = '_'.join(abbr_expansion_tokens)
                 matched_expansion = abbr_should_be_main_name.lower() == abbr_main_name.lower()
 
                 if abbr_id not in abbrs:
                     if not matched_expansion:
-                        print(f'WARN: Abbreviation [{abbr_name}] may have unmatched expansion [{abbr_expansion}] in [{doc["file"]}]')
+                        print(
+                            f'WARN: Abbreviation [{abbr_name}] may have unmatched expansion [{abbr_expansion}] in [{doc["file"]}]'
+                        )
                     abbrs[abbr_id] = [abbr_id, abbr_name, abbr_expansion, 'v' if matched_expansion else 'x']
                 else:
-                    if abbrs[abbr_id][3] == 'x': # not verified
+                    if abbrs[abbr_id][3] == 'x':  # not verified
                         if abbr_expansion == abbrs[abbr_id][2]:
                             if not matched_expansion:
                                 print(
-                                    f'WARN: Abbreviation [{abbr_name}] may have unmatched expansion [{abbr_expansion}] in [{doc["file"]}]')
+                                    f'WARN: Abbreviation [{abbr_name}] may have unmatched expansion [{abbr_expansion}] in [{doc["file"]}]'
+                                )
                         else:
                             print(
-                                f'WARN: Same abbreviation [{abbr_name}] represented by different expansions ([{abbr_expansion}] vs. [{abbrs[abbr_id][2]}]) in [{doc["file"]}]')
+                                f'WARN: Same abbreviation [{abbr_name}] represented by different expansions ([{abbr_expansion}] vs. [{abbrs[abbr_id][2]}]) in [{doc["file"]}]'
+                            )
 
             with open(cache_file_path, 'w', newline='', encoding='utf-8') as abbr_file:
                 abbr_csv_writer = csv.writer(abbr_file)

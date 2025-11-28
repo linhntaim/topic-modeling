@@ -1,6 +1,7 @@
 import os
 import re
 
+from docs_manager.docs_db import DocsDB
 from docs_manager.pdf_extractors.pdf_extractor import PdfExtractor
 from docs_manager.pdf_extractors.pdfminer_extractor import PdfMinerExtractor
 
@@ -9,14 +10,13 @@ class DocsExtractor:
     def __init__(self, pdf_extractor: PdfExtractor = None):
         self._pdf_extractor: PdfExtractor = pdf_extractor if pdf_extractor is not None else PdfMinerExtractor()
 
-    def from_db(self, docs_db, dir_path: str, raw_dir_path: str = None):
+    def from_db(self, docs_db: DocsDB, dir_path: str, raw_dir_path: str = None):
         if not os.path.isdir(dir_path):
             raise FileNotFoundError(f'Directory {dir_path} does not exist')
         if raw_dir_path is not None and not os.path.isdir(raw_dir_path):
             raw_dir_path = None
 
-        # docs = docs_db.get_non_deleted()
-        docs = docs_db.get_processed()
+        docs = self._get_docs(docs_db)
         for doc in docs:
             if raw_dir_path is None:
                 doc_file_path = os.path.join(dir_path, doc['file'])
@@ -28,6 +28,9 @@ class DocsExtractor:
 
         print(f'Got {len(docs)} docs')
         return docs
+
+    def _get_docs(self, docs_db: DocsDB):
+        return docs_db.get_processed()
 
     def _get_text(self, file_path):
         file_name = os.path.basename(file_path)
