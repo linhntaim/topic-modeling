@@ -634,13 +634,23 @@ def update_metadata(file_content, file_name, file_last_modified):
         _, base64_content = file_content.split(',')
         metadata = json.loads(base64.b64decode(base64_content).decode('utf-8'))
         return (
-            metadata['docs'],
-            metadata['terms'],
-        ), html.P(children=[f'Metadata: ', html.Span('OK', style={'color': 'green'})])
+            (
+                metadata['docs'],
+                metadata['terms'],
+                metadata['doc_term_matrix'],
+            ),
+            html.P(children=[f'Metadata: ', html.Span('OK', style={'color': 'green'})])
+        )
     except:
         if file_name is None:
-            return None, html.P(children=f'Must upload "umap_metadata.json" first!', style={'color': 'red'})
-        return None, html.P(children=f'Cannot get metadata from {file_name}', style={'color': 'red'})
+            return (
+                None,
+                html.P(children=f'Must upload "umap_metadata.json" first!', style={'color': 'red'}),
+            )
+        return (
+            None,
+            html.P(children=f'Cannot get metadata from {file_name}', style={'color': 'red'}),
+        )
 
 
 @app.callback(
@@ -728,6 +738,11 @@ def create_figure_from_umap_embbeding(
         figure_title,
 ):
     global discrete_colors
+
+    if figure_data is None:
+        figure_data = {}
+        figure_hover_data = {}
+        figure_labels = {}
 
     if n_components == 3:
         return px.scatter_3d(
@@ -884,7 +899,7 @@ def update_tote_clustering_graph(
             None,
         )
 
-    meta_docs, meta_terms = stored_metadata
+    meta_docs, meta_terms, _ = stored_metadata
     num_docs = len(meta_docs)
     num_terms = len(meta_terms)
 
@@ -1081,12 +1096,12 @@ def update_tote_umap_params(n_components_value, n_neighbors_value, min_dist_valu
     Output('tote-umap-output', 'children'),
     Output('tote-umap-plotter', 'figure'),
     Input('tote-umap-button', 'n_clicks'),
-    State('data-store', 'data'),
     State('metadata-store', 'data'),
+    State('data-store', 'data'),
     State('tote-umap-params-store', 'data'),
     prevent_initial_call=True,
 )
-def update_tote_umap_graph(n_clicks, stored_data, stored_metadata, stored_umap_params):
+def update_tote_umap_graph(n_clicks, stored_metadata, stored_data, stored_umap_params):
     if stored_metadata is None:
         return (
             None,
@@ -1100,7 +1115,7 @@ def update_tote_umap_graph(n_clicks, stored_data, stored_metadata, stored_umap_p
             None,
         )
 
-    meta_docs, meta_terms = stored_metadata
+    meta_docs, meta_terms, _ = stored_metadata
     num_docs = len(meta_docs)
     num_terms = len(meta_terms)
 
@@ -1155,7 +1170,11 @@ def update_tote_umap_graph(n_clicks, stored_data, stored_metadata, stored_umap_p
         [
             f'Documents: {num_docs} / Terms: {num_terms} / Topics: {num_topics}',
             html.Br(),
-            html.A('UMAP parameters', href='https://umap-learn.readthedocs.io/en/latest/parameters.html'),
+            html.A(
+                'UMAP parameters',
+                href='https://umap-learn.readthedocs.io/en/latest/parameters.html',
+                target='_blank',
+            ),
             ':',
             html.Br(),
             f'- n_components: {n_components_value}',
@@ -1202,12 +1221,12 @@ def update_doto_umap_params(n_components_value, n_neighbors_value, min_dist_valu
     Output('doto-umap-output', 'children'),
     Output('doto-umap-plotter', 'figure'),
     Input('doto-umap-button', 'n_clicks'),
-    State('data-store', 'data'),
     State('metadata-store', 'data'),
+    State('data-store', 'data'),
     State('doto-umap-params-store', 'data'),
     prevent_initial_call=True,
 )
-def update_doto_umap_graph(n_clicks, stored_data, stored_metadata, stored_umap_params):
+def update_doto_umap_graph(n_clicks, stored_metadata, stored_data, stored_umap_params):
     if stored_metadata is None:
         return (
             None,
@@ -1221,7 +1240,7 @@ def update_doto_umap_graph(n_clicks, stored_data, stored_metadata, stored_umap_p
             None,
         )
 
-    meta_docs, meta_terms = stored_metadata
+    meta_docs, meta_terms, _ = stored_metadata
     num_docs = len(meta_docs)
     num_terms = len(meta_terms)
 
@@ -1281,7 +1300,11 @@ def update_doto_umap_graph(n_clicks, stored_data, stored_metadata, stored_umap_p
         [
             f'Documents: {num_docs} / Terms: {num_terms} / Topics: {num_topics}',
             html.Br(),
-            html.A('UMAP parameters', href='https://umap-learn.readthedocs.io/en/latest/parameters.html'),
+            html.A(
+                'UMAP parameters',
+                href='https://umap-learn.readthedocs.io/en/latest/parameters.html',
+                target='_blank',
+            ),
             ':',
             html.Br(),
             f'- n_components: {n_components_value}',
@@ -1557,7 +1580,11 @@ def update_tote_hdbscan_graph(
         return (
             labels,
             [
-                html.A('HDBSCAN parameters', href='https://hdbscan.readthedocs.io/en/latest/parameter_selection.html'),
+                html.A(
+                    'HDBSCAN parameters',
+                    href='https://hdbscan.readthedocs.io/en/latest/parameter_selection.html',
+                    target='_blank',
+                ),
                 ':',
                 html.Br(),
                 f'- min_cluster_size: {min_cluster_size_value}',

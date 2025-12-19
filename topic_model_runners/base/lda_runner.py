@@ -93,11 +93,12 @@ class LdaRunner(TopicModelRunner):
 
     def _output_umap_results(self):
         docs = self._dtm_runner.get_docs()
-        id2word, _ = self._dtm_runner.get_dtm()
+        id2word, corpus = self._dtm_runner.get_dtm()
 
         metadata = {
             'docs': [doc['title'] for doc in docs],
             'terms': [id2word[i] for i in range(len(id2word))],
+            'doc_term_matrix': [{token_id: token_count for token_id, token_count in bow} for bow in corpus],
         }
         with open(os.path.join(self._output_dir, 'umap_metadata.json'), 'w', encoding='utf-8') as file:
             json.dump(metadata, file, indent=4)
