@@ -326,8 +326,8 @@ def calculate_doto_umap_graph(stored_metadata, stored_data, stored_umap_params, 
         },
         {
             'document': 'Document',
-            'document_dominant_topic': 'Dominant Topic',
-            'document_dominant_keywords': 'Dominant Keywords',
+            'document_dominant_topic': 'Topic',
+            'document_dominant_keywords': 'Keywords',
         },
         'document_dominant_topic',
         'UMAP Embedding of Document-Topic Matrix',
@@ -497,12 +497,12 @@ def calculate_tote_clustering_graph(
         },
         {
             'document': 'Document',
-            'document_dominant_topic': 'Dominant Topic',
-            'document_dominant_keywords': 'Dominant Keywords',
-            'document_dominant_label': 'Dominant Group',
+            'document_dominant_topic': 'Topic',
+            'document_dominant_keywords': 'Keywords',
+            'document_dominant_label': 'Group',
         },
         'document_dominant_label',
-        f'Clusters by Dominant Topic using {clustering_method_name} of UMAP Embedding of Document-Topic Matrix',
+        f'Clusters by Topic using {clustering_method_name} of UMAP Embedding of Document-Topic Matrix',
     )
 
     tote_doto_download = dcc.send_data_frame(
@@ -623,11 +623,11 @@ def update_tote_doto_clustering_hover(hover_data):
     return update_graph_hover(hover_data, lambda customdata: [
         f'Document: {customdata[0]}',
         html.Br(),
-        f'Dominant Topic: {customdata[1]}',
+        f'Topic: {customdata[1]}',
         html.Br(),
-        f'Dominant Keywords: {customdata[2]}',
+        f'Keywords: {customdata[2]}',
         html.Br(),
-        f'Dominant Group: {customdata[3]}',
+        f'Group: {customdata[3]}',
     ])
 
 
@@ -1478,7 +1478,7 @@ app.layout = html.Div([
                 figure=tote_doto_kmeans_fig,
                 config={
                     'toImageButtonOptions': {
-                        'filename': 'Clusters_using_KMeans_of_UMAP_Embedding_of_Document_Topic_Matrix'
+                        'filename': 'Clusters_by_Topic_using_KMeans_of_UMAP_Embedding_of_Document_Topic_Matrix'
                     }
                 },
             ),
@@ -1601,7 +1601,7 @@ app.layout = html.Div([
                 figure=tote_doto_hdbscan_fig,
                 config={
                     'toImageButtonOptions': {
-                        'filename': 'Clusters_using_HDBSCAN_of_UMAP_Embedding_of_Document_Topic_Matrix'
+                        'filename': 'Clusters_by_Topic_using_HDBSCAN_of_UMAP_Embedding_of_Document_Topic_Matrix'
                     }
                 },
             ),
@@ -1789,9 +1789,9 @@ def update_doto_umap_hover(hover_data):
     return update_graph_hover(hover_data, lambda customdata: [
         f'Document: {customdata[0]}',
         html.Br(),
-        f'Dominant Topic: {customdata[1]}',
+        f'Topic: {customdata[1]}',
         html.Br(),
-        f'Dominant Keywords: {customdata[2]}',
+        f'Keywords: {customdata[2]}',
     ])
 
 
