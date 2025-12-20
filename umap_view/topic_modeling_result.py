@@ -10,6 +10,7 @@ import numpy as np
 import pandas
 
 from dash import Dash, html, dcc, Output, Input, State
+from dotenv import load_dotenv
 from gensim import matutils
 from plotly import express as px, graph_objs as go
 from plotly.subplots import make_subplots
@@ -17,6 +18,9 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
 from base.ab_fixed_umap import ABFixedUMAP
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 # region Common Handlers
@@ -159,7 +163,14 @@ def update_graph_hover(hover_data, transform_customdata_func):
     )
 
 
-def calculate_tote_umap_graph(stored_metadata, stored_data, stored_umap_params):
+def naming(name, names):
+    return names[name] if name in names else name
+
+
+def calculate_tote_umap_graph(stored_metadata, stored_data, stored_umap_params, embedding=None, named_topics=None):
+    if named_topics is None:
+        named_topics = {}
+
     if stored_metadata is None:
         return (
             None,
@@ -195,20 +206,21 @@ def calculate_tote_umap_graph(stored_metadata, stored_data, stored_umap_params):
         metric_value,
     ) = stored_umap_params
 
-    embedding = calculate_umap_embedding(
-        topic_term_matrix,
-        n_components=n_components_value,
-        n_neighbors=n_neighbors_value,
-        min_dist=min_dist_value,
-        metric=metric_value,
-        random_state=random_seed,
-    )
+    if embedding is None:
+        embedding = calculate_umap_embedding(
+            topic_term_matrix,
+            n_components=n_components_value,
+            n_neighbors=n_neighbors_value,
+            min_dist=min_dist_value,
+            metric=metric_value,
+            random_state=random_seed,
+        )
 
     fig = create_figure_from_umap_embbeding(
         n_components_value,
         embedding,
         {
-            'topic': [f'Topic {topic_id}' for topic_id in range(num_topics)],
+            'topic': [naming(f'Topic {topic_id}', named_topics) for topic_id in range(num_topics)],
             'topic_keywords': [', '.join(topic_keywords[topic_id]) for topic_id in range(num_topics)],
         },
         {
@@ -247,7 +259,10 @@ def calculate_tote_umap_graph(stored_metadata, stored_data, stored_umap_params):
     )
 
 
-def calculate_doto_umap_graph(stored_metadata, stored_data, stored_umap_params):
+def calculate_doto_umap_graph(stored_metadata, stored_data, stored_umap_params, embedding=None, named_topics=None):
+    if named_topics is None:
+        named_topics = {}
+
     if stored_metadata is None:
         return (
             None,
@@ -284,21 +299,23 @@ def calculate_doto_umap_graph(stored_metadata, stored_data, stored_umap_params):
         metric_value,
     ) = stored_umap_params
 
-    embedding = calculate_umap_embedding(
-        document_topic_matrix,
-        n_components=n_components_value,
-        n_neighbors=n_neighbors_value,
-        min_dist=min_dist_value,
-        metric=metric_value,
-        random_state=random_seed,
-    )
+    if embedding is None:
+        embedding = calculate_umap_embedding(
+            document_topic_matrix,
+            n_components=n_components_value,
+            n_neighbors=n_neighbors_value,
+            min_dist=min_dist_value,
+            metric=metric_value,
+            random_state=random_seed,
+        )
 
     fig = create_figure_from_umap_embbeding(
         n_components_value,
         embedding,
         {
             'document': [meta_docs[doc_id] for doc_id in range(num_docs)],
-            'document_dominant_topic': [f'Topic {topic_id}' for topic_id in document_dominant_topics],
+            'document_dominant_topic': [naming(f'Topic {topic_id}', named_topics)
+                                        for topic_id in document_dominant_topics],
             'document_dominant_keywords': [', '.join(topic_keywords[topic_id])
                                            for topic_id in document_dominant_topics],
         },
@@ -353,13 +370,10 @@ def calculate_tote_clustering_graph(
         named_topics=None,
         named_labels=None,
 ):
-    if named_labels is None:
-        named_labels = {}
     if named_topics is None:
         named_topics = {}
-
-    def naming(name, names):
-        return names[name] if name in names else name
+    if named_labels is None:
+        named_labels = {}
 
     if stored_metadata is None:
         return (
@@ -448,7 +462,7 @@ def calculate_tote_clustering_graph(
         {
             'topic': 'Topic',
             'topic_keywords': 'Keywords',
-            'topic_label': 'Label',
+            'topic_label': 'Group',
         },
         'topic_label',
         f'Clusters using {clustering_method_name} of UMAP Embedding of Topic-Term Matrix',
@@ -485,7 +499,7 @@ def calculate_tote_clustering_graph(
             'document': 'Document',
             'document_dominant_topic': 'Dominant Topic',
             'document_dominant_keywords': 'Dominant Keywords',
-            'document_dominant_label': 'Dominant Label',
+            'document_dominant_label': 'Dominant Group',
         },
         'document_dominant_label',
         f'Clusters by Dominant Topic using {clustering_method_name} of UMAP Embedding of Document-Topic Matrix',
@@ -601,7 +615,7 @@ def update_tote_clustering_hover(hover_data):
         html.Br(),
         f'Keywords: {customdata[1]}',
         html.Br(),
-        f'Label: {customdata[2]}',
+        f'Group: {customdata[2]}',
     ])
 
 
@@ -613,7 +627,7 @@ def update_tote_doto_clustering_hover(hover_data):
         html.Br(),
         f'Dominant Keywords: {customdata[2]}',
         html.Br(),
-        f'Dominant Label: {customdata[3]}',
+        f'Dominant Group: {customdata[3]}',
     ])
 
 
@@ -621,14 +635,32 @@ def update_tote_doto_clustering_hover(hover_data):
 
 # region Argv
 parser = argparse.ArgumentParser()
-parser.add_argument('-p', '--port', help='Set port', default='8050')
-parser.add_argument('--debug', action='store_true', help='Enable debug')
-parser.add_argument('-l', '--load', help='Load data from a directory')
+parser.add_argument('-p', '--port',
+                    help='Set port',
+                    default='8050')
+parser.add_argument('--debug',
+                    action='store_true',
+                    help='Enable debug')
+parser.add_argument('-l', '--load',
+                    help='Load data from a directory')
+parser.add_argument('-f', '--fixed',
+                    action='store_true',
+                    help='Enable load from fixed location got from `UMAP_LOAD_DIR`')
+parser.add_argument('-tnc', '--topic-name-col',
+                    help='Set topic shortname column',
+                    default='topic_shortname')
+parser.add_argument('-gnc', '--group-name-col',
+                    help='Set group shortname column',
+                    default='group_shortname')
 args = parser.parse_args()
 
 port = int(args.port)
 debug = args.debug
 loading_dir = args.load
+if args.fixed:
+    loading_dir = os.getenv('UMAP_LOAD_DIR')
+topic_name_col = args.topic_name_col
+group_name_col = args.group_name_col
 # endregion
 
 # region Global vars
@@ -765,8 +797,7 @@ tote_doto_hdbscan_fig = None
 # endregion
 
 # region Load
-if loading_dir is not None and os.path.isdir(loading_dir):
-    print('Loading...')
+if loading_dir is not None and loading_dir != '' and os.path.isdir(loading_dir):
     umap_metadata_file_path = glob.glob(os.path.join(loading_dir, '*umap_metadata*.json'))
     if len(umap_metadata_file_path) > 0:
         umap_metadata_file_path = umap_metadata_file_path[0]
@@ -824,52 +855,27 @@ if loading_dir is not None and os.path.isdir(loading_dir):
                 if doto_umap_metric not in umap_metrics:
                     raise 'Invalid doto_umap_metric'
 
-                tote_umap_embedding, tote_umap_output, tote_umap_fig = calculate_tote_umap_graph(
-                    (
-                        loaded_metadata['docs'],
-                        loaded_metadata['terms'],
-                    ),
-                    (
-                        loaded_data['num_topics'],
-                        loaded_data['terms_per_topic'],
-                        loaded_data['random_seed'],
-                        loaded_data['topic_matrix'],
-                        loaded_data['topic_term_matrix'],
-                        loaded_data['document_topic_matrix'],
-                    ),
-                    (
-                        tote_umap_n_components,
-                        tote_umap_n_neighbors,
-                        tote_umap_min_dist,
-                        tote_umap_metric,
-                    )
+                tote_umap_embedding = calculate_umap_embedding(
+                    loaded_data['topic_term_matrix'],
+                    n_components=tote_umap_n_components,
+                    n_neighbors=tote_umap_n_neighbors,
+                    min_dist=tote_umap_min_dist,
+                    metric=tote_umap_metric,
+                    random_state=loaded_data['random_seed'],
                 )
 
-                doto_umap_embedding, doto_umap_output, doto_umap_fig = calculate_doto_umap_graph(
-                    (
-                        loaded_metadata['docs'],
-                        loaded_metadata['terms'],
-                    ),
-                    (
-                        loaded_data['num_topics'],
-                        loaded_data['terms_per_topic'],
-                        loaded_data['random_seed'],
-                        loaded_data['topic_matrix'],
-                        loaded_data['topic_term_matrix'],
-                        loaded_data['document_topic_matrix'],
-                    ),
-                    (
-                        doto_umap_n_components,
-                        doto_umap_n_neighbors,
-                        doto_umap_min_dist,
-                        doto_umap_metric,
-                    )
+                doto_umap_embedding = calculate_umap_embedding(
+                    loaded_data['document_topic_matrix'],
+                    n_components=doto_umap_n_components,
+                    n_neighbors=doto_umap_n_neighbors,
+                    min_dist=doto_umap_min_dist,
+                    metric=doto_umap_metric,
+                    random_state=loaded_data['random_seed'],
                 )
 
+                loaded_named_topics = {}
+                loaded_named_labels = {}
                 if 'kmeans' in loaded_config['topic_clustering']:
-                    loaded_named_topics = {}
-                    loaded_named_labels = {}
-
                     topic_labels_file_path = glob.glob(
                         os.path.join(loading_dir, f'*topic_labels_using_{clustering_method_hdbscan}*.csv'))
                     if len(topic_labels_file_path) > 0:
@@ -877,8 +883,8 @@ if loading_dir is not None and os.path.isdir(loading_dir):
                         with open(topic_labels_file_path, 'r', newline='', encoding='utf-8') as f:
                             csv_reader = csv.DictReader(f)
                             for row in csv_reader:
-                                loaded_named_topics[row['Topic']] = row['topic_name']
-                                loaded_named_labels[row['Label']] = row['group_name']
+                                loaded_named_topics[row['Topic']] = row[topic_name_col]
+                                loaded_named_labels[row['Label']] = row[group_name_col]
 
                     parameters = loaded_config['topic_clustering']['kmeans']
 
@@ -926,80 +932,123 @@ if loading_dir is not None and os.path.isdir(loading_dir):
                 else:
                     kmeans_enabled = False
 
-                if 'hdbscan' in loaded_config['topic_clustering']:
-                    loaded_named_topics = {}
-                    loaded_named_labels = {}
+                    if 'hdbscan' in loaded_config['topic_clustering']:
+                        topic_labels_file_path = glob.glob(
+                            os.path.join(loading_dir, f'*topic_labels_using_{clustering_method_hdbscan}*.csv'))
+                        if len(topic_labels_file_path) > 0:
+                            topic_labels_file_path = topic_labels_file_path[0]
+                            with open(topic_labels_file_path, 'r', newline='', encoding='utf-8') as f:
+                                csv_reader = csv.DictReader(f)
+                                for row in csv_reader:
+                                    loaded_named_topics[row['Topic']] = row[topic_name_col]
+                                    loaded_named_labels[row['Label']] = row[group_name_col]
 
-                    topic_labels_file_path = glob.glob(
-                        os.path.join(loading_dir, f'*topic_labels_using_{clustering_method_hdbscan}*.csv'))
-                    if len(topic_labels_file_path) > 0:
-                        topic_labels_file_path = topic_labels_file_path[0]
-                        with open(topic_labels_file_path, 'r', newline='', encoding='utf-8') as f:
-                            csv_reader = csv.DictReader(f)
-                            for row in csv_reader:
-                                loaded_named_topics[row['Topic']] = row['topic_name']
-                                loaded_named_labels[row['Label']] = row['group_name']
+                        parameters = loaded_config['topic_clustering']['hdbscan']
 
-                    parameters = loaded_config['topic_clustering']['hdbscan']
+                        hdbscan_min_cluster_size_max = loaded_data['num_topics']
+                        hdbscan_min_samples_max = loaded_data['num_topics']
 
-                    hdbscan_min_cluster_size_max = loaded_data['num_topics']
-                    hdbscan_min_samples_max = loaded_data['num_topics']
+                        hdbscan_min_cluster_size = parameters['min_cluster_size']
+                        if (hdbscan_min_cluster_size > hdbscan_min_cluster_size_max
+                                or hdbscan_min_cluster_size < hdbscan_min_cluster_size_min
+                                or hdbscan_min_cluster_size % hdbscan_min_cluster_size_step != 0):
+                            raise 'Invalid hdbscan_min_cluster_size'
 
-                    hdbscan_min_cluster_size = parameters['min_cluster_size']
-                    if (hdbscan_min_cluster_size > hdbscan_min_cluster_size_max
-                            or hdbscan_min_cluster_size < hdbscan_min_cluster_size_min
-                            or hdbscan_min_cluster_size % hdbscan_min_cluster_size_step != 0):
-                        raise 'Invalid hdbscan_min_cluster_size'
+                        hdbscan_min_samples = parameters['min_samples']
+                        if (hdbscan_min_samples > hdbscan_min_samples_max
+                                or hdbscan_min_samples < hdbscan_min_samples_min
+                                or hdbscan_min_samples % hdbscan_min_samples_step != 0):
+                            raise 'Invalid hdbscan_min_samples'
 
-                    hdbscan_min_samples = parameters['min_samples']
-                    if (hdbscan_min_samples > hdbscan_min_samples_max
-                            or hdbscan_min_samples < hdbscan_min_samples_min
-                            or hdbscan_min_samples % hdbscan_min_samples_step != 0):
-                        raise 'Invalid hdbscan_min_samples'
+                        hdbscan_metric = parameters['metric']
+                        if hdbscan_metric not in hdbscan_metrics:
+                            raise 'Invalid hdbscan_metric'
 
-                    hdbscan_metric = parameters['metric']
-                    if hdbscan_metric not in hdbscan_metrics:
-                        raise 'Invalid hdbscan_metric'
+                        tote_hdbscan_output, tote_hdbscan_fig, _, tote_doto_hdbscan_fig, _, _ = calculate_tote_clustering_graph(
+                            (
+                                loaded_metadata['docs'],
+                                loaded_metadata['terms'],
+                            ),
+                            (
+                                loaded_data['num_topics'],
+                                loaded_data['terms_per_topic'],
+                                loaded_data['random_seed'],
+                                loaded_data['topic_matrix'],
+                                loaded_data['topic_term_matrix'],
+                                loaded_data['document_topic_matrix'],
+                            ),
+                            tote_umap_embedding,
+                            doto_umap_embedding,
+                            (
+                                tote_umap_n_components,
+                                tote_umap_n_neighbors,
+                                tote_umap_min_dist,
+                                tote_umap_metric,
+                            ),
+                            (
+                                doto_umap_n_components,
+                                doto_umap_n_neighbors,
+                                doto_umap_min_dist,
+                                doto_umap_metric,
+                            ),
+                            (
+                                hdbscan_min_cluster_size,
+                                hdbscan_min_samples,
+                                hdbscan_metric
+                            ),
+                            clustering_method_hdbscan,
+                            calculate_hdbscan_clusters,
+                            loaded_named_topics,
+                            loaded_named_labels,
+                        )
+                    else:
+                        hdbscan_enabled = False
 
-                    tote_hdbscan_output, tote_hdbscan_fig, _, tote_doto_hdbscan_fig, _, _ = calculate_tote_clustering_graph(
-                        (
-                            loaded_metadata['docs'],
-                            loaded_metadata['terms'],
-                        ),
-                        (
-                            loaded_data['num_topics'],
-                            loaded_data['terms_per_topic'],
-                            loaded_data['random_seed'],
-                            loaded_data['topic_matrix'],
-                            loaded_data['topic_term_matrix'],
-                            loaded_data['document_topic_matrix'],
-                        ),
-                        tote_umap_embedding,
-                        doto_umap_embedding,
-                        (
-                            tote_umap_n_components,
-                            tote_umap_n_neighbors,
-                            tote_umap_min_dist,
-                            tote_umap_metric,
-                        ),
-                        (
-                            doto_umap_n_components,
-                            doto_umap_n_neighbors,
-                            doto_umap_min_dist,
-                            doto_umap_metric,
-                        ),
-                        (
-                            hdbscan_min_cluster_size,
-                            hdbscan_min_samples,
-                            hdbscan_metric
-                        ),
-                        clustering_method_hdbscan,
-                        calculate_hdbscan_clusters,
-                        loaded_named_topics,
-                        loaded_named_labels,
-                    )
-                else:
-                    hdbscan_enabled = False
+                _, tote_umap_output, tote_umap_fig = calculate_tote_umap_graph(
+                    (
+                        loaded_metadata['docs'],
+                        loaded_metadata['terms'],
+                    ),
+                    (
+                        loaded_data['num_topics'],
+                        loaded_data['terms_per_topic'],
+                        loaded_data['random_seed'],
+                        loaded_data['topic_matrix'],
+                        loaded_data['topic_term_matrix'],
+                        loaded_data['document_topic_matrix'],
+                    ),
+                    (
+                        tote_umap_n_components,
+                        tote_umap_n_neighbors,
+                        tote_umap_min_dist,
+                        tote_umap_metric,
+                    ),
+                    tote_umap_embedding,
+                    loaded_named_topics,
+                )
+
+                _, doto_umap_output, doto_umap_fig = calculate_doto_umap_graph(
+                    (
+                        loaded_metadata['docs'],
+                        loaded_metadata['terms'],
+                    ),
+                    (
+                        loaded_data['num_topics'],
+                        loaded_data['terms_per_topic'],
+                        loaded_data['random_seed'],
+                        loaded_data['topic_matrix'],
+                        loaded_data['topic_term_matrix'],
+                        loaded_data['document_topic_matrix'],
+                    ),
+                    (
+                        doto_umap_n_components,
+                        doto_umap_n_neighbors,
+                        doto_umap_min_dist,
+                        doto_umap_metric,
+                    ),
+                    doto_umap_embedding,
+                    loaded_named_topics,
+                )
 
                 readonly = True
 # endregion
@@ -1169,6 +1218,11 @@ app.layout = html.Div([
         responsive='auto',
         clear_on_unhover=True,
         figure=tote_umap_fig,
+        config={
+            'toImageButtonOptions': {
+                'filename': 'UMAP_Embedding_of_Topic_Term_Matrix'
+            }
+        },
     ),
     html.Div(
         id='tote-umap-hover',
@@ -1274,6 +1328,11 @@ app.layout = html.Div([
         responsive='auto',
         clear_on_unhover=True,
         figure=doto_umap_fig,
+        config={
+            'toImageButtonOptions': {
+                'filename': 'UMAP_Embedding_of_Document_Topic_Matrix'
+            }
+        },
     ),
     html.Div(
         id='doto-umap-hover',
@@ -1337,6 +1396,11 @@ app.layout = html.Div([
                         id='tote-kmeans-scoring-plotter',
                         responsive='auto',
                         clear_on_unhover=True,
+                        config={
+                            'toImageButtonOptions': {
+                                'filename': 'Scoring_of_Clusters_using_KMeans_of_UMAP_Embedding_of_Topic_Term_Matrix'
+                            }
+                        },
                     ),
                     # endregion
 
@@ -1393,6 +1457,11 @@ app.layout = html.Div([
                 responsive='auto',
                 clear_on_unhover=True,
                 figure=tote_kmeans_fig,
+                config={
+                    'toImageButtonOptions': {
+                        'filename': 'Clusters_using_KMeans_of_UMAP_Embedding_of_Topic_Term_Matrix'
+                    }
+                },
             ),
             html.Div(
                 id='tote-kmeans-hover',
@@ -1407,6 +1476,11 @@ app.layout = html.Div([
                 responsive='auto',
                 clear_on_unhover=True,
                 figure=tote_doto_kmeans_fig,
+                config={
+                    'toImageButtonOptions': {
+                        'filename': 'Clusters_using_KMeans_of_UMAP_Embedding_of_Document_Topic_Matrix'
+                    }
+                },
             ),
             html.Div(
                 id='tote-doto-kmeans-hover',
@@ -1506,6 +1580,11 @@ app.layout = html.Div([
                 responsive='auto',
                 clear_on_unhover=True,
                 figure=tote_hdbscan_fig,
+                config={
+                    'toImageButtonOptions': {
+                        'filename': 'Clusters_using_HDBSCAN_of_UMAP_Embedding_of_Topic_Term_Matrix'
+                    }
+                },
             ),
             html.Div(
                 id='tote-hdbscan-hover',
@@ -1520,6 +1599,11 @@ app.layout = html.Div([
                 responsive='auto',
                 clear_on_unhover=True,
                 figure=tote_doto_hdbscan_fig,
+                config={
+                    'toImageButtonOptions': {
+                        'filename': 'Clusters_using_HDBSCAN_of_UMAP_Embedding_of_Document_Topic_Matrix'
+                    }
+                },
             ),
             html.Div(
                 id='tote-doto-hdbscan-hover',
